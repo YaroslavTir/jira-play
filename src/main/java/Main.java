@@ -27,30 +27,9 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         JiraRestClientPlus client = getJiraRestClient();
+        getWorkItems(client);
         client.close();
     }
-
-
-    private static JiraRestClientPlus getJiraRestClient() throws URISyntaxException {
-        AsynchronousJiraRestClientFactoryPlus factory = new AsynchronousJiraRestClientFactoryPlus();
-        JiraRestClientPlus client = factory.createWithBasicHttpAuthentication(new URI(URL), ADMIN_USERNAME, ADMIN_PASSWORD);
-        getWorkItems(client);
-
-        return client;
-    }
-
-    private static DateTime stringToDateTime (String timeString){
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-        Date start = null;
-        try {
-            start = sdf.parse(timeString);
-        } catch (ParseException e) {
-            System.out.println("ooops");
-            return null;
-        }
-        return new DateTime(start.getTime());
-    }
-
 
     private static void getWorkItems(JiraRestClientPlus client){
         SearchRestClient searchClient = client.getSearchClient();
@@ -71,6 +50,24 @@ public class Main {
         }
         System.out.println(sum);
         System.out.println(sum/60);
+    }
+
+    private static JiraRestClientPlus getJiraRestClient() throws URISyntaxException {
+        AsynchronousJiraRestClientFactoryPlus factory = new AsynchronousJiraRestClientFactoryPlus();
+        JiraRestClientPlus client = factory.createWithBasicHttpAuthentication(new URI(URL), ADMIN_USERNAME, ADMIN_PASSWORD);
+        return client;
+    }
+
+    private static DateTime stringToDateTime (String timeString){
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        Date start = null;
+        try {
+            start = sdf.parse(timeString);
+        } catch (ParseException e) {
+            System.out.println("ooops");
+            return null;
+        }
+        return new DateTime(start.getTime());
     }
 
 }

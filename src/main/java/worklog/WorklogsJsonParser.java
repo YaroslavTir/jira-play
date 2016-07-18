@@ -30,11 +30,12 @@ public class WorklogsJsonParser implements JsonObjectParser<List<Worklog>> {
     @Nullable
     private <T> Collection<T> parseOptionalArray(final JSONObject json, final JsonWeakParser<T> jsonParser, final String... path)
             throws JSONException {
-        final JSONArray jsonArray = JsonParseUtil.getNestedOptionalArray(json, path);
+        JSONArray jsonArray = JsonParseUtil.getNestedOptionalArray(json, path);
         if (jsonArray == null) {
             return null;
         }
-        final Collection<T> res = new ArrayList<>(jsonArray.length());
+        Collection<T> res = new ArrayList<>(jsonArray.length());
+
         for (int i = 0; i < jsonArray.length(); i++) {
             res.add(jsonParser.parse(jsonArray.get(i)));
         }
@@ -42,8 +43,8 @@ public class WorklogsJsonParser implements JsonObjectParser<List<Worklog>> {
     }
 
     public List<Worklog> parse(JSONObject s) throws JSONException {
-        final Collection<Worklog> worklogs;
-        final URI selfUri = basicIssue.getSelf();
+        Collection<Worklog> worklogs;
+        URI selfUri = basicIssue.getSelf();
         worklogs = parseOptionalArray(s, new JsonWeakParserForJsonObject<>(new WorklogJsonParserV5(selfUri)), IssueFieldId.WORKLOGS_FIELD.id);
 
         if (worklogs == null) {
@@ -53,7 +54,7 @@ public class WorklogsJsonParser implements JsonObjectParser<List<Worklog>> {
     }
 
     private static class JsonWeakParserForJsonObject<T> implements JsonWeakParser<T> {
-        private final JsonObjectParser<T> jsonParser;
+        private JsonObjectParser<T> jsonParser;
 
         public JsonWeakParserForJsonObject(JsonObjectParser<T> jsonParser) {
             this.jsonParser = jsonParser;

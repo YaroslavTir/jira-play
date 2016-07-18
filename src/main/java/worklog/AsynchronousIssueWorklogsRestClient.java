@@ -17,12 +17,12 @@ public class AsynchronousIssueWorklogsRestClient extends AbstractAsynchronousRes
     private final WorklogsJsonParser worklogsParser = new WorklogsJsonParser();
     private final URI baseUri;
 
-    public AsynchronousIssueWorklogsRestClient(final URI baseUri, final HttpClient client) {
+    public AsynchronousIssueWorklogsRestClient(URI baseUri, HttpClient client) {
         super(client);
         this.baseUri = baseUri;
     }
 
-    public Promise<List<Worklog>> getIssueWorklogs(final BasicIssue issue) {
+    public Promise<List<Worklog>> getIssueWorklogs(BasicIssue issue) {
         final UriBuilder uriBuilder = UriBuilder.fromUri(baseUri);
         uriBuilder.path("issue").path(issue.getKey()).path("worklog");
         worklogsParser.setIssue(issue);
