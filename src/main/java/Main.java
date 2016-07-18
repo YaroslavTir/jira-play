@@ -19,9 +19,9 @@ import java.util.List;
  */
 public class Main {
 
-    private static final String URL = "https://jira.tfe.nl";
-    private static final String ADMIN_USERNAME = "yaroslav.molodkov@firstlinesoftware.com";
-    private static final String ADMIN_PASSWORD = "yUCsmZTyEbT8";
+    private static final String URL = "";
+    private static final String ADMIN_USERNAME = "";
+    private static final String ADMIN_PASSWORD = "";
     public static final String START_DATE = "2016/07/11";
     public static final String END_DATE   = "2016/07/15";
 
