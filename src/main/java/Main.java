@@ -1,116 +1,76 @@
-import com.atlassian.jira.rest.client.api.*;
-import com.atlassian.jira.rest.client.api.domain.*;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
-import com.atlassian.util.concurrent.Promise;
-import yaroslavtir.CustomAsynchronousJiraRestClientFactory;
-import yaroslavtir.CustomCustomAsynchronousJiraRestClient;
-import yaroslavtir.RemoteLink;
+import com.atlassian.jira.rest.client.api.SearchRestClient;
+import com.atlassian.jira.rest.client.api.domain.Issue;
+import com.atlassian.jira.rest.client.api.domain.SearchResult;
+import com.atlassian.jira.rest.client.api.domain.Worklog;
+import org.joda.time.DateTime;
+import worklog.AsynchronousJiraRestClientFactoryPlus;
+import worklog.IssueWorklogsRestClient;
+import worklog.JiraRestClientPlus;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutionException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author yaroslavTir.
  */
 public class Main {
 
-    private static final String URL = "http://localhost:8080";
-    private static final String ADMIN_USERNAME = "yaroslavTir@gmail.com";
-    private static final String ADMIN_PASSWORD = "jira";
+    private static final String URL = "https://jira.tfe.nl";
+    private static final String ADMIN_USERNAME = "yaroslav.molodkov@firstlinesoftware.com";
+    private static final String ADMIN_PASSWORD = "yUCsmZTyEbT8";
+    public static final String START_DATE = "2016/07/11";
+    public static final String END_DATE   = "2016/07/15";
 
     public static void main(String[] args) throws Exception {
-        JiraRestClient client = getJiraRestClient();
-        remoteLinkTest(client);
-//        String key = createIssue(client);
-//        getIssue(client, key);
-//        updateIssue(client, key);
-//        deleteIssue(client, key);
+        JiraRestClientPlus client = getJiraRestClient();
         client.close();
     }
 
-    private static JiraRestClient getJiraRestClient() throws URISyntaxException {
-        JiraRestClientFactory factory = new CustomAsynchronousJiraRestClientFactory();
-        JiraRestClient client = factory.createWithBasicHttpAuthentication(new URI(URL), ADMIN_USERNAME, ADMIN_PASSWORD);
-        SearchRestClient searchClient = client.getSearchClient();
-        SearchResult result = searchClient.searchJql("project = 'sync project' and status = 'open'").claim();
-        System.out.println(result);
+
+    private static JiraRestClientPlus getJiraRestClient() throws URISyntaxException {
+        AsynchronousJiraRestClientFactoryPlus factory = new AsynchronousJiraRestClientFactoryPlus();
+        JiraRestClientPlus client = factory.createWithBasicHttpAuthentication(new URI(URL), ADMIN_USERNAME, ADMIN_PASSWORD);
+        getWorkItems(client);
+
         return client;
     }
 
-    private static void getIssue(JiraRestClient client, String key) throws ExecutionException, InterruptedException {
-        IssueRestClient issueClient = client.getIssueClient();
-        Promise<Issue> issuePromise = issueClient.getIssue(key);
-        Issue issue = issuePromise.claim();
-        issue.getUpdateDate();
-        System.out.println(issue.getId());
-    }
-
-    private static void remoteLinkTest(JiraRestClient client){
-        CustomCustomAsynchronousJiraRestClient customClient = (CustomCustomAsynchronousJiraRestClient) client;
-        String issueKey = "SP-7605";
-        Iterable<RemoteLink> remoteLinks = customClient.getRemoteLinkRestClient().getRemoteLink(issueKey).claim();
-        RemoteLink remoteLink = remoteLinks.iterator().next();
-        customClient.getRemoteLinkRestClient().createRemoteLink(issueKey, remoteLink).claim();
-    }
-
-    private static String createIssue(JiraRestClient client) throws ExecutionException, InterruptedException {
-        IssueInput issueInput = getIssueForInsert(client);
-        IssueRestClient issueClient = client.getIssueClient();
-        BasicIssue basicIssue = issueClient.createIssue(issueInput).claim();
-        String key = basicIssue.getKey();
-        System.out.println(key);
-        return key;
+    private static DateTime stringToDateTime (String timeString){
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        Date start = null;
+        try {
+            start = sdf.parse(timeString);
+        } catch (ParseException e) {
+            System.out.println("ooops");
+            return null;
+        }
+        return new DateTime(start.getTime());
     }
 
 
-    private static void updateIssue(JiraRestClient client, String key) throws ExecutionException, InterruptedException {
-        IssueInput issueInput = getIssueForUpdate(client);
-        IssueRestClient issueClient = client.getIssueClient();
-        issueClient.updateIssue(key, issueInput).claim();
-        System.out.println("updated");
+    private static void getWorkItems(JiraRestClientPlus client){
+        SearchRestClient searchClient = client.getSearchClient();
+        SearchResult result = searchClient
+                .searchJql("project = 'MYLSCR' and issueFunction in workLogged('after "+ START_DATE +" before "+ END_DATE +" by yaroslav.molodkov@firstlinesoftware.com')").claim();
+        IssueWorklogsRestClient issueWorklogRestClient = client.getIssueWorklogRestClient();
+        int sum = 0;
+        for (Issue issue : result.getIssues()) {
+            List<Worklog> worklogs = issueWorklogRestClient.getIssueWorklogs(issue).claim();
+            int workLogSum = worklogs.stream()
+                    .filter(worklog -> worklog.getAuthor()
+                            .getName().equals(ADMIN_USERNAME))
+                    .filter(worklog -> worklog.getStartDate().isAfter(stringToDateTime(START_DATE).getMillis()) &&
+                                    worklog.getStartDate().isBefore(stringToDateTime(END_DATE).toInstant()))
+                    .mapToInt(Worklog::getMinutesSpent)
+                    .sum();
+            sum += workLogSum;
+        }
+        System.out.println(sum);
+        System.out.println(sum/60);
     }
-
-    private static void deleteIssue(JiraRestClient client, String key) throws ExecutionException, InterruptedException {
-        IssueRestClient issueClient = client.getIssueClient();
-        issueClient.deleteIssue(key, false).claim();
-        System.out.println("deleted");
-    }
-
-
-    private static IssueInput getIssueForInsert(JiraRestClient client) throws ExecutionException, InterruptedException {
-        IssueInputBuilder issueBuilder = new IssueInputBuilder("10000", 3L);
-
-        issueBuilder.setProject(retrieveProject(client));
-        issueBuilder.setDescription("issue description");
-        issueBuilder.setSummary("issue summary");
-
-        return issueBuilder.build();
-    }
-
-    private static IssueInput getIssueForUpdate(JiraRestClient client) throws ExecutionException, InterruptedException {
-        IssueInputBuilder issueBuilder = new IssueInputBuilder("10000", 3L);
-
-        issueBuilder.setProject(retrieveProject(client));
-        issueBuilder.setAssignee(retrieveUser(client));
-        issueBuilder.setDescription("updated description");
-        issueBuilder.setSummary("updated summary");
-
-        return issueBuilder.build();
-    }
-
-    private static User retrieveUser(JiraRestClient client) throws InterruptedException, ExecutionException {
-        UserRestClient userClient = client.getUserClient();
-        return userClient.getUser(ADMIN_USERNAME).claim();
-    }
-
-    private static Project retrieveProject(JiraRestClient client) throws ExecutionException, InterruptedException {
-        ProjectRestClient projectClient = client.getProjectClient();
-        Promise<Project> project = projectClient.getProject("10000");
-        Project projectObj = project.claim();
-        return projectObj;
-    }
-
 
 }
