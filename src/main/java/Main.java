@@ -22,8 +22,8 @@ public class Main {
     private static final String URL = "https://jira.tfe.nl";
     private static final String ADMIN_USERNAME = "yaroslav.molodkov@firstlinesoftware.com";
     private static final String ADMIN_PASSWORD = "yUCsmZTyEbT8";
-    public static final String START_DATE = "2016/07/11";
-    public static final String END_DATE   = "2016/07/15";
+    public static final String START_DATE = "2016/07/18";
+    public static final String END_DATE   = "2016/07/22";
 
     public static void main(String[] args) throws Exception {
         JiraRestClientPlus client = getJiraRestClient();
@@ -47,8 +47,8 @@ public class Main {
             allWorklogs.addAll(worklogsByUser.stream().map(w -> new Info(w, issue)).collect(Collectors.toList()));
         }
         Map<DateTime, List<Info>> groupByDate = allWorklogs.stream()
-                .collect(Collectors.groupingBy(w -> w.getWorklog().getStartDate()));
-        LinkedHashMap<DateTime, List<Info>> groupByDateAndSorted = new LinkedHashMap<>(groupByDate);
+                .collect(Collectors.groupingBy(w -> w.getWorklog().getStartDate().dayOfMonth().roundFloorCopy()));
+        Map<DateTime, List<Info>> groupByDateAndSorted = new TreeMap<>(groupByDate);
         groupByDateAndSorted.entrySet().forEach(e -> {
             System.out.println(e.getKey());
             e.getValue()
