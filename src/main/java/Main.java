@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
  */
 public class Main {
 
-    private static final String URL = "https://jira.tfe.nl";
-    private static final String ADMIN_USERNAME = "yaroslav.molodkov@firstlinesoftware.com";
-    private static final String ADMIN_PASSWORD = "yUCsmZTyEbT8";
-    public static final String START_DATE = "2016/07/18";
-    public static final String END_DATE   = "2016/07/22";
+    private static final String URL = "";
+    private static final String ADMIN_USERNAME = "";
+    private static final String ADMIN_PASSWORD = "";
+    public static final String START_DATE = "2016/07/4";
+    public static final String END_DATE   = "2016/07/9";
 
     public static void main(String[] args) throws Exception {
         JiraRestClientPlus client = getJiraRestClient();
