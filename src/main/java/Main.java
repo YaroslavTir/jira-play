@@ -11,17 +11,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author yaroslavTir.
  */
 public class Main {
 
-    private static final String URL = "";
-    private static final String ADMIN_USERNAME = "";
-    private static final String ADMIN_PASSWORD = "";
+    private static final String URL = "https://jira.tfe.nl";
+    private static final String ADMIN_USERNAME = "yaroslav.molodkov@firstlinesoftware.com";
+    private static final String ADMIN_PASSWORD = "yUCsmZTyEbT8";
     public static final String START_DATE = "2016/07/11";
     public static final String END_DATE   = "2016/07/15";
 
@@ -34,22 +34,27 @@ public class Main {
     private static void getWorkItems(JiraRestClientPlus client){
         SearchRestClient searchClient = client.getSearchClient();
         SearchResult result = searchClient
-                .searchJql("project = 'MYLSCR' and issueFunction in workLogged('after "+ START_DATE +" before "+ END_DATE +" by yaroslav.molodkov@firstlinesoftware.com')").claim();
+                .searchJql("project = 'MYLSCR' and issueFunction in workLogged('after "+ START_DATE +" by yaroslav.molodkov@firstlinesoftware.com')").claim();
         IssueWorklogsRestClient issueWorklogRestClient = client.getIssueWorklogRestClient();
-        int sum = 0;
+        List<Info> allWorklogs = new ArrayList<>();
         for (Issue issue : result.getIssues()) {
             List<Worklog> worklogs = issueWorklogRestClient.getIssueWorklogs(issue).claim();
-            int workLogSum = worklogs.stream()
-                    .filter(worklog -> worklog.getAuthor()
-                            .getName().equals(ADMIN_USERNAME))
+            List<Worklog> worklogsByUser = worklogs.stream()
+                    .filter(worklog -> worklog.getAuthor().getName().equals(ADMIN_USERNAME))
                     .filter(worklog -> worklog.getStartDate().isAfter(stringToDateTime(START_DATE).getMillis()) &&
-                                    worklog.getStartDate().isBefore(stringToDateTime(END_DATE).toInstant()))
-                    .mapToInt(Worklog::getMinutesSpent)
-                    .sum();
-            sum += workLogSum;
+                            worklog.getStartDate().isBefore(stringToDateTime(END_DATE).toInstant()))
+                    .collect(Collectors.toList());
+            allWorklogs.addAll(worklogsByUser.stream().map(w -> new Info(w, issue)).collect(Collectors.toList()));
         }
-        System.out.println(sum);
-        System.out.println(sum/60);
+        Map<DateTime, List<Info>> groupByDate = allWorklogs.stream()
+                .collect(Collectors.groupingBy(w -> w.getWorklog().getStartDate()));
+        LinkedHashMap<DateTime, List<Info>> groupByDateAndSorted = new LinkedHashMap<>(groupByDate);
+        groupByDateAndSorted.entrySet().forEach(e -> {
+            System.out.println(e.getKey());
+            e.getValue()
+                    .forEach(w -> System.out.println(String.format("%s: %s h", w.getIssue().getKey(), w.getWorklog().getMinutesSpent()/60)));
+        });
+
     }
 
     private static JiraRestClientPlus getJiraRestClient() throws URISyntaxException {
@@ -60,7 +65,7 @@ public class Main {
 
     private static DateTime stringToDateTime (String timeString){
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-        Date start = null;
+        Date start;
         try {
             start = sdf.parse(timeString);
         } catch (ParseException e) {
@@ -68,6 +73,24 @@ public class Main {
             return null;
         }
         return new DateTime(start.getTime());
+    }
+
+    static  class Info{
+        final Worklog worklog;
+        final Issue issue;
+
+        public Info(Worklog worklog, Issue issue) {
+            this.worklog = worklog;
+            this.issue = issue;
+        }
+
+        public Worklog getWorklog() {
+            return worklog;
+        }
+
+        public Issue getIssue() {
+            return issue;
+        }
     }
 
 }
