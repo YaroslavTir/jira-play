@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
  */
 public class Main {
 
-    private static final String URL = "";
-    private static final String ADMIN_USERNAME = "";
-    private static final String ADMIN_PASSWORD = "";
-    public static final String START_DATE = "2016/07/4";
-    public static final String END_DATE   = "2016/07/9";
+    private static final String URL = "https://jira.tfe.nl";
+    private static final String ADMIN_USERNAME = "email";
+    private static final String ADMIN_PASSWORD = "pass";
+    public static final String START_DATE = "2016/07/25";
+    public static final String END_DATE = "2016/08/31";
 
     public static void main(String[] args) throws Exception {
         JiraRestClientPlus client = getJiraRestClient();
@@ -31,10 +31,13 @@ public class Main {
         client.close();
     }
 
-    private static void getWorkItems(JiraRestClientPlus client){
+    private static void getWorkItems(JiraRestClientPlus client) {
         SearchRestClient searchClient = client.getSearchClient();
         SearchResult result = searchClient
-                .searchJql("project = 'MYLSCR' and issueFunction in workLogged('after "+ START_DATE +" by yaroslav.molodkov@firstlinesoftware.com')").claim();
+//               for jira 6
+//                .searchJql("project = 'MYLSCR' and issueFunction in workLogged('after "+ START_DATE +" by "+ADMIN_USERNAME+"')").claim();
+//               for jira 7
+                .searchJql("project = 'MYLSCR' AND worklogAuthor='" + ADMIN_USERNAME + "' AND worklogDate > '"+ START_DATE +"'").claim();
         IssueWorklogsRestClient issueWorklogRestClient = client.getIssueWorklogRestClient();
         List<Info> allWorklogs = new ArrayList<>();
         for (Issue issue : result.getIssues()) {
@@ -52,7 +55,7 @@ public class Main {
         groupByDateAndSorted.entrySet().forEach(e -> {
             System.out.println(e.getKey());
             e.getValue()
-                    .forEach(w -> System.out.println(String.format("%s: %s h", w.getIssue().getKey(), w.getWorklog().getMinutesSpent()/60)));
+                    .forEach(w -> System.out.println(String.format("%s: %s h", w.getIssue().getKey(), w.getWorklog().getMinutesSpent() / 60)));
         });
 
     }
@@ -63,7 +66,7 @@ public class Main {
         return client;
     }
 
-    private static DateTime stringToDateTime (String timeString){
+    private static DateTime stringToDateTime(String timeString) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
         Date start;
         try {
@@ -75,7 +78,7 @@ public class Main {
         return new DateTime(start.getTime());
     }
 
-    static  class Info{
+    static class Info {
         final Worklog worklog;
         final Issue issue;
 
