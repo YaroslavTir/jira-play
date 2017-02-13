@@ -55,7 +55,8 @@ public class Main {
         groupByDateAndSorted.entrySet().forEach(e -> {
             System.out.println(e.getKey());
             e.getValue()
-                    .forEach(w -> System.out.println(String.format("%s: %s h", w.getIssue().getKey(), w.getWorklog().getMinutesSpent() / 60)));
+                    .forEach(w ->
+                            System.out.println(String.format("%s: %s h %s min", w.getIssue().getKey(), w.getWorklog().getMinutesSpent() / 60, w.getWorklog().getMinutesSpent() % 60)));
         });
 
     }
